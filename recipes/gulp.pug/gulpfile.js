@@ -23,6 +23,7 @@ gulp.task('templates', function() {
             return JSON.parse(data);
         }))
         .pipe(pug(
+            // FIXME all loaded contexts are injected in every template
            {pretty: true}
         ))
         .pipe(gulp.dest('./dist/'));
