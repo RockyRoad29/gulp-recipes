@@ -2,24 +2,10 @@ var gulp        = require('gulp');
 var browserSync = require('browser-sync');
 var sass        = require('gulp-sass');
 var pug         = require('gulp-pug');
-// var data        = require('gulp-data');
+var data        = require('gulp-data');
+var fs          = require('fs');
+var path        = require('path');
 var reload      = browserSync.reload;
-
-/*
-  Get data via JSON file
-*/
-
-var YOUR_LOCALS = {};// makeContext();
-
-gulp.task('context', function() {
-  return gulp.src('data/example.json')
-        .pipe(function(file, encoding, callback) {
-            console.log("Context changed:", file.content);
-            // YOUR_LOCALS = file.content;
-            callback();
-            return file;
-    });
-});
 
 /**
  * Compile pug files into HTML
@@ -27,10 +13,18 @@ gulp.task('context', function() {
 gulp.task('templates', function() {
 
 
-    return gulp.src('./app/*.pug')
-        .pipe(pug({
-            locals: YOUR_LOCALS
+    return gulp.src('./app/**/*.pug')
+    // get suitable context for each .pug file
+        .pipe(data(function(file) {
+            var ctx = './data/'  + path.basename(file.path).replace(/\.pug$/,'.json');
+            console.log("Loading context for %s: %s", file.path, ctx);
+            var data = fs.readFileSync(ctx, {encoding:'utf-8'});
+            // console.log("data: %j", data);
+            return JSON.parse(data);
         }))
+        .pipe(pug(
+           {pretty: true}
+        ))
         .pipe(gulp.dest('./dist/'));
 });
 
@@ -53,12 +47,14 @@ gulp.task('sass', function () {
 /**
  * Serve and watch the scss/pug files for changes
  */
-gulp.task('default', ['sass', 'context', 'templates'], function () {
+gulp.task('default', ['sass', 'templates'], function () {
 
-    browserSync({server: './dist'});
-
+    browserSync({
+        open: false,
+        ui: false,
+        server: './dist'
+    });
 
     gulp.watch('./app/scss/*.scss', ['sass']);
-    gulp.watch('./data/**/*.json', ['context', 'pug-watch']);
-    gulp.watch('./app/*.pug',      ['pug-watch']);
+    gulp.watch(['data/**/*.json','./app/**/*.pug'], ['pug-watch']);
 });
